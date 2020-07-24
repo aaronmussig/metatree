@@ -7,7 +7,7 @@ from setuptools import setup
 def read_meta():
     path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'metatree/__init__.py')
     with open(path) as fh:
-        hits = re.findall(r'^__(\w+)__ ?= ?["''](.+)["'']\n', fh.read())
+        hits = re.findall(r'__(\w+)__ ?= ?["\'](.+)["\']\n', fh.read())
     return {k: v for k, v in hits}
 
 
@@ -44,7 +44,7 @@ setup(name=meta['title'],
           'Topic :: Scientific/Engineering :: Bio-Informatics',
       ],
       keywords='phylogenetic distance matrix symmetric',
-      packages=['metatree', 'metatree.io'],
+      packages=['metatree', 'metatree.io', 'metatree.external'],
       entry_points={
           'console_scripts': [
               'metatree = metatree.__main__:main'

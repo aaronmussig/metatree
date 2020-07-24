@@ -3,8 +3,6 @@ from collections import defaultdict
 
 import dendropy
 import ete3
-from ete3 import Tree, TreeStyle, TextFace, add_face_to_node
-
 
 class FMeasureTree(object):
     """Compares Phylorank output tables and plots differences in a tree."""
@@ -90,8 +88,8 @@ class FMeasureTree(object):
         d_rank_common = self.get_n_common()
 
         # Create an ete3 tree and annotate it
-        t = Tree(str(newick), format=1, quoted_node_names=True)
-        ts = TreeStyle()
+        t = ete3.Tree(str(newick), format=1, quoted_node_names=True)
+        ts = ete3.TreeStyle()
         ts.show_leaf_name = False
         ts.show_scale = False
         ts.rotation = rotation_deg
@@ -101,11 +99,11 @@ class FMeasureTree(object):
                        '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3',
                        '#808000', '#ffd8b1', '#000075', '#808080', '#ffffff', '#000000']
 
-            F = TextFace(node.name, fsize=8, tight_text=True)
+            F = ete3.TextFace(node.name, fsize=8, tight_text=True)
             F.rotation = -rotation_deg
             F.margin_right = 2
             F.margin_left = 3
-            add_face_to_node(F, node, column=0, position='branch-right')
+            ete3.add_face_to_node(F, node, column=0, position='branch-right')
 
             tf_invis = FMeasureTree.get_text_face('-', None, 0.0)
 
