@@ -13,6 +13,8 @@ Visualisation of polyphyletic groups between phylogenetic trees to a given refer
 
 ## Usage
 
+**NOTE**: The reference tree must always be the first line in the batchfile.
+
 ```shell script
 metatree [batchfile] [out_dir] [taxonomy_file] [outgroup] [cpus]
 ```
