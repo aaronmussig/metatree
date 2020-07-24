@@ -14,7 +14,7 @@ metatree batchfile.tsv /tmp/metatree_out taxonomy.tsv p__Altiarchaeota 5
 ### Output:
 
 ##### Console:
-```shell script
+```
 [2020-07-24 11:01:36] INFO: metatree v0.0.1
 [2020-07-24 11:01:36] INFO: metatree batchfile.tsv /tmp/output taxonomy.tsv p__Altiarchaeota 5
 [2020-07-24 11:01:36] INFO: Rooting trees using GenomeTreeTk v0.1.6
@@ -38,8 +38,9 @@ Note that this is not a complete list of all output files, only those which are
 of primary interest.
 
 **Robinson-Foulds distances between trees:**
-![Normalised RF heatmap](https://github.com/aaronmussig/metatree/raw/master/example/output/rf_normed_heatmap.svg "Normalised RF heatmap")
 
+<img src="https://github.com/aaronmussig/metatree/raw/master/example/output/rf_normed_heatmap.svg" alt="Normalised RF heatmap" width="500" height="500">
 
 **PhyloRank polyphyly overview:**
+
 ![PhyloRank polyphyly overview](https://github.com/aaronmussig/metatree/raw/master/example/output/tree_comparison_legend.svg "PhyloRank polyphyly overview")
