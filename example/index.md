@@ -7,6 +7,8 @@
 ### Input:
 The test files can be found under the [example/input](https://github.com/aaronmussig/metatree/example/input) directory.
 
+**NOTE**: The reference tree must always be the first line in the batchfile.
+
 ```shell script
 metatree batchfile.tsv /tmp/metatree_out taxonomy.tsv p__Altiarchaeota 5
 ```
