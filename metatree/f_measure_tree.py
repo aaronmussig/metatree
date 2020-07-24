@@ -5,6 +5,8 @@ import dendropy
 import ete3
 from ete3 import Tree, TreeStyle, TextFace, add_face_to_node
 
+from metatree.common import hex_rgb, rgba_hex
+
 
 class FMeasureTree(object):
     """Compares Phylorank output tables and plots differences in a tree."""
@@ -16,7 +18,66 @@ class FMeasureTree(object):
 
     def add_table(self, label, path):
         """Adds a table for comparison."""
-        self.files[label] = path
+        self.files[label] = FMeasureTable(path)
+
+    def get_n_common(self):
+        """Determine the number of genomes which are common between ALL models."""
+        out = defaultdict(lambda: defaultdict(lambda: 0))
+
+        # Index by rank.
+        d_rank_model = defaultdict(dict)
+        for model_id, fm in self.files.items():
+            for rank, rank_dict in fm.get_content().items():
+                d_rank_model[rank][model_id] = rank_dict
+
+        # Iterate over each rank and find the number of common taxa.
+        for rank, model_dict in d_rank_model.items():
+
+            # This is common for all ranks.
+            if set(self.files.keys()) == set(model_dict.keys()):
+
+                # Determine the number of common taxa for all of the models.
+                all_in, all_out = None, None
+                for cur_model_id, cur_model_info in model_dict.items():
+                    if all_in is None:
+                        all_in = set(cur_model_info['rogue_in'])
+                    else:
+                        all_in = all_in.intersection(set(cur_model_info['rogue_in']))
+                    if all_out is None:
+                        all_out = set(cur_model_info['rogue_out'])
+                    else:
+                        all_out = all_out.intersection(set(cur_model_info['rogue_out']))
+
+                out[rank]['in'] = len(all_in)
+                out[rank]['out'] = len(all_out)
+        return out
+
+    def get_poly_ranks(self):
+        out = set()
+        for model_id, fm in self.files.items():
+            for rank, rank_dict in fm.get_content().items():
+                if rank_dict['f_measure'] < 1.0:
+                    out.add(rank)
+        return out
+
+    @staticmethod
+    def get_text_face(text, bg, opacity, fsize=8):
+        margin_size = 2
+
+        tf = ete3.faces.TextFace(str(text), fsize=fsize, tight_text=True)
+        tf.background.color = bg
+        tf.margin_top = margin_size
+        tf.margin_bottom = margin_size
+        tf.margin_right = margin_size
+        tf.margin_left = margin_size
+        tf.opacity = opacity
+        tf.rotation = -0
+        tf.border.color = '#f2f2f2'
+        tf.border.width = None # try 1?
+        tf.hz_align = 1
+        tf.vt_align = 1
+        return tf
+
 
     def run(self, legend, out_path, rotation_deg=0):
 
@@ -25,59 +86,10 @@ class FMeasureTree(object):
 
         # Create a newick tree spanning all nodes identified in f-measure tables.
         newick = NewickTree(self.tf)
-        f_info = dict()
-        for model_id, f_path in self.files.items():
-            fm = FMeasureTable(f_path)
-            newick.add_nodes(fm)
-            f_info[model_id] = fm
+        [newick.add_nodes(fm) for fm in self.files.values()]
 
-        # Determine the data for the graph.
-        f_expected = dict()
-        f_exclusive_in = defaultdict(lambda: defaultdict(lambda: 0))  # [model][rank] = num
-        f_exclusive_out = defaultdict(lambda: defaultdict(lambda: 0))
-        f_common_in = defaultdict(lambda: 0)
-        f_common_out = defaultdict(lambda: 0)
-
-        # Index each of the ranks.
-        d_rank_model = defaultdict(dict)
-        for model_id, fm in f_info.items():
-            for rank, rank_dict in fm.get_content().items():
-                d_rank_model[rank][model_id] = rank_dict
-
-        for rank, model_dict in d_rank_model.items():
-
-            # This is common for all ranks.
-            if set(f_info.keys()) == set(model_dict.keys()):
-
-                # Determine the number of common taxa for all of the models.
-                all_in, all_out = None, None
-                for cur_model_id, cur_model_info in model_dict.items():
-                    if all_in is None:
-                        all_in = set(cur_model_info['g_in'])
-                    else:
-                        all_in = all_in.intersection(set(cur_model_info['g_in']))
-                    if all_out is None:
-                        all_out = set(cur_model_info['g_out'])
-                    else:
-                        all_out = all_out.intersection(set(cur_model_info['g_out']))
-
-                f_common_in[rank] = len(all_in)
-                f_common_out[rank] = len(all_out)
-
-            # Determine the counts
-            for cur_model_id, cur_model_info in model_dict.items():
-                f_exclusive_in[cur_model_id][rank] = cur_model_info['n_in']
-                f_exclusive_out[cur_model_id][rank] = cur_model_info['n_out']
-
-                if f_expected.get(rank) != cur_model_info['n_expected']:
-                    print('non expected')
-                if rank not in f_expected:
-                    f_expected[rank] = cur_model_info['n_expected']
-                else:
-                    # TODO: USe the GTDB counts
-                    f_expected[rank] = min(f_expected[rank], cur_model_info['n_expected'])
-
-
+        # Determine the counts for the common taxa.
+        d_rank_common = self.get_n_common()
 
         # Create an ete3 tree and annotate it
         t = Tree(str(newick), format=1, quoted_node_names=True)
@@ -86,111 +98,104 @@ class FMeasureTree(object):
         ts.show_scale = False
         ts.rotation = rotation_deg
 
-        # for idx, model_id in enumerate(sorted(f_info.keys())):
-        #     print(idx, model_id)
 
         def my_layout(node):
-            MARGIN_SIZE = 3
             COLOURS = ['#ADEF29', '#F0E442', '#009E73', '#56B4E9', '#E69F00', '#911eb4', '#46f0f0', '#f032e6',
                        '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3',
                        '#808000', '#ffd8b1', '#000075', '#808080', '#ffffff', '#000000']
 
-            F = TextFace(node.name, tight_text=True)
+            F = TextFace(node.name, fsize=8, tight_text=True)
             F.rotation = -rotation_deg
-            F.margin_right = MARGIN_SIZE
-            F.margin_left = MARGIN_SIZE
+            F.margin_right = 2
+            F.margin_left = 3
             add_face_to_node(F, node, column=0, position='branch-right')
+
+            tf_invis = FMeasureTree.get_text_face('-', None, 0.0)
 
             if node.name in ['d__Bacteria', 'd__Archaea']:
 
+                # Attach a legend to the plot.
                 if legend:
+                    tf_legend_common_in = FMeasureTree.get_text_face('No. Common In', '#CC79A7', 1.0, fsize=7)
+                    ete3.faces.add_face_to_node(tf_legend_common_in, node, column=1, position="branch-top")
 
-                    tf_expected = ete3.faces.TextFace('No. Expected', fsize=8)
-                    tf_expected.background.color = '#D55E00'
-                    tf_expected.margin_top = MARGIN_SIZE
-                    tf_expected.margin_bottom = MARGIN_SIZE
-                    tf_expected.margin_right = MARGIN_SIZE
-                    tf_expected.margin_left = MARGIN_SIZE
-                    tf_expected.border.width = 1
-                    tf_expected.rotation = -rotation_deg
-                    ete3.faces.add_face_to_node(tf_expected, node, column=2, position="branch-right")
+                    tf_legend_common_out = FMeasureTree.get_text_face('No. Common Out', '#CC79A7', 1.0, fsize=7)
+                    ete3.faces.add_face_to_node(tf_legend_common_out, node, column=1, position="branch-top")
 
-                    tf_common_in_str = '%s\n%s' % ('No. Common In', 'No. Common Out')
-                    tf_common_in = ete3.faces.TextFace(tf_common_in_str, fsize=8)
-                    tf_common_in.background.color = '#CC79A7'
-                    tf_common_in.margin_top = MARGIN_SIZE
-                    tf_common_in.margin_bottom = MARGIN_SIZE
-                    tf_common_in.margin_right = MARGIN_SIZE
-                    tf_common_in.margin_left = MARGIN_SIZE
-                    tf_common_in.border.width = 1
-                    tf_common_in.rotation = -rotation_deg
-                    ete3.faces.add_face_to_node(tf_common_in, node, column=3, position="branch-right")
+                    tf_legend_common_blank = FMeasureTree.get_text_face('X', None, 0.0, fsize=7)
+                    ete3.faces.add_face_to_node(tf_legend_common_blank, node, column=1, position="branch-top")
 
-                    for idx, model_id in enumerate(sorted(f_info.keys())):
-                        tf_generic_str = '%s\n%s' % ('No. Unique In (%s)' % model_id, 'No. Unique Out (%s)' % model_id)
-                        tf_generic = ete3.faces.TextFace(tf_generic_str, fsize=8)
-                        tf_generic.background.color = COLOURS[idx]
-                        tf_generic.margin_top = MARGIN_SIZE
-                        tf_generic.margin_bottom = MARGIN_SIZE
-                        tf_generic.margin_right = MARGIN_SIZE
-                        tf_generic.margin_left = MARGIN_SIZE
-                        tf_generic.border.width = 1
-                        tf_generic.rotation = -rotation_deg
-                        ete3.faces.add_face_to_node(tf_generic, node, column=4 + idx, position="branch-right")
+                    for idx, model_id in enumerate(sorted(self.files.keys())):
+                        tf_legend_in = FMeasureTree.get_text_face(f'No. Rogue In ({model_id})', COLOURS[idx], 1.0, fsize=7)
+                        ete3.faces.add_face_to_node(tf_legend_in, node, column=2 + idx, position="branch-top")
+
+                        tf_legend_out = FMeasureTree.get_text_face(f'No. Rogue Out ({model_id})', COLOURS[idx], 1.0, fsize=7)
+                        ete3.faces.add_face_to_node(tf_legend_out, node, column=2 + idx, position="branch-top")
+
+                        tf_legend_exp = FMeasureTree.get_text_face(f'No. Expected ({model_id})', COLOURS[idx], 0.5, fsize=7)
+                        ete3.faces.add_face_to_node(tf_legend_exp, node, column=2 + idx, position="branch-top")
 
             # Check if this node was not monophyletic in any of the models
-            if node.name in f_expected:
+            poly_ranks = self.get_poly_ranks()
+            if node.name in poly_ranks:
 
-                f_padd = ete3.faces.TextFace('', fsize=10)
-                f_padd.margin_right = 5
-                f_padd.margin_left = 5
-                ete3.faces.add_face_to_node(f_padd, node, column=1, position="branch-right")
+                # Create a spacer between the rank name and the values.
+                ete3.faces.add_face_to_node(tf_invis, node, column=1, position="branch-right")
 
-                # tf_expected = ete3.faces.TextFace(f_expected[node.name], fsize=10)
-                # tf_expected.background.color = '#D55E00'
-                # tf_expected.margin_top = MARGIN_SIZE
-                # tf_expected.margin_bottom = MARGIN_SIZE
-                # tf_expected.margin_right = MARGIN_SIZE
-                # tf_expected.margin_left = MARGIN_SIZE
-                # tf_expected.border.width = 1
-                # tf_expected.rotation = -rotation_deg
-                # ete3.faces.add_face_to_node(tf_expected, node, column=2, position="branch-right")
+                n_common_in = d_rank_common[node.name]['in']
+                n_common_out = d_rank_common[node.name]['out']
 
-                tf_common_in_str = f'{f_common_in[node.name]}\n{f_common_out[node.name]}'
-                tf_common_in = ete3.faces.TextFace(tf_common_in_str, fsize=10)
-                tf_common_in.background.color = '#CC79A7'
-                tf_common_in.margin_top = MARGIN_SIZE
-                tf_common_in.margin_bottom = MARGIN_SIZE
-                tf_common_in.margin_right = MARGIN_SIZE
-                tf_common_in.margin_left = MARGIN_SIZE
-                tf_common_in.border.width = 1
-                tf_common_in.rotation = -rotation_deg
-                if tf_common_in_str == '0\n0':
-                    tf_common_in.opacity = 0.2
-                    tf_common_in.border.width = 0
-                    tf_common_in.background.color = '#f2f2f2'
+                # Add a spacer to act as a top margin.
+                ete3.faces.add_face_to_node(tf_invis, node, column=2, position="branch-right")
+
+                # Add the number of common taxa in.
+                if n_common_in == 0:
+                    tf_common_in = FMeasureTree.get_text_face(n_common_in, '#f2f2f2', 0.2)
+                else:
+                    tf_common_in = FMeasureTree.get_text_face(n_common_in, '#CC79A7', 1)
                 ete3.faces.add_face_to_node(tf_common_in, node, column=2, position="branch-right")
 
-                for idx, model_id in enumerate(sorted(f_info.keys())):
-                    tf_generic_str = f'{f_exclusive_in[model_id][node.name]}\n{f_exclusive_out[model_id][node.name]}\n?'
-                    tf_generic = ete3.faces.TextFace(tf_generic_str, fsize=10)
-                    tf_generic.background.color = COLOURS[idx]
-                    tf_generic.margin_top = MARGIN_SIZE
-                    tf_generic.margin_bottom = MARGIN_SIZE
-                    tf_generic.margin_right = MARGIN_SIZE
-                    tf_generic.margin_left = MARGIN_SIZE
-                    tf_generic.border.width = 1
-                    tf_generic.rotation = -rotation_deg
-                    if tf_generic_str == '0\n0':
-                        tf_generic.opacity = 0.2
-                        tf_generic.border.width = 0
-                        tf_generic.background.color = '#f2f2f2'
-                    ete3.faces.add_face_to_node(tf_generic, node, column=3 + idx, position="branch-right")
+                # Add the number of common taxa out.
+                if n_common_out == 0:
+                    tf_common_out = FMeasureTree.get_text_face(n_common_out, '#f2f2f2', 0.2)
+                else:
+                    tf_common_out = FMeasureTree.get_text_face(n_common_out, '#CC79A7', 1)
+                ete3.faces.add_face_to_node(tf_common_out, node, column=2, position="branch-right")
+
+                tf_common_blank = FMeasureTree.get_text_face('X', None, 0.0)
+                ete3.faces.add_face_to_node(tf_common_blank, node, column=2, position="branch-right")
+
+                # Add model specific information for this current rank.
+                for idx, model_id in enumerate(sorted(self.files.keys())):
+                    cur_f_table = self.files[model_id].content
+                    n_rogue_in = len(cur_f_table[node.name]["rogue_in"])
+                    n_rogue_out = len(cur_f_table[node.name]["rogue_out"])
+
+                    # Add a top margin spacer.
+                    ete3.faces.add_face_to_node(tf_invis, node, column=3 + idx, position="branch-right")
+
+                    # Number of rogue taxa in.
+                    if n_rogue_in == 0:
+                        tf_generic_in = FMeasureTree.get_text_face(n_rogue_in, '#f2f2f2', 0.2)
+                    else:
+                        tf_generic_in = FMeasureTree.get_text_face(n_rogue_in, COLOURS[idx], 1.0)
+                    ete3.faces.add_face_to_node(tf_generic_in, node, column=3 + idx, position="branch-right")
+
+                    # Number of rogue taxa out.
+                    if n_rogue_out == 0:
+                        tf_generic_out = FMeasureTree.get_text_face(n_rogue_out, '#f2f2f2', 0.2)
+                    else:
+                        tf_generic_out = FMeasureTree.get_text_face(n_rogue_out, COLOURS[idx], 1.0)
+                    ete3.faces.add_face_to_node(tf_generic_out, node, column=3 + idx, position="branch-right")
+
+                    # Expected number of taxa in this model.
+                    if n_rogue_in == 0 and n_rogue_out == 0:
+                        tf_expected_cnt = FMeasureTree.get_text_face(cur_f_table[node.name]["n_expected"], '#f2f2f2', 0.2)
+                    else:
+                        tf_expected_cnt = FMeasureTree.get_text_face(cur_f_table[node.name]["n_expected"], COLOURS[idx], 0.5)
+                    ete3.faces.add_face_to_node(tf_expected_cnt, node, column=3 + idx, position="branch-right")
 
         ts.layout_fn = my_layout
-
-        # t.show(tree_style=ts)
-        # xvfb-run python concat_f_measure.py
 
         if out_path is None:
             print('Run as: xvfb-run python concat_f_measure.py')
@@ -298,6 +303,9 @@ class Node(object):
 
 
 class FMeasureTable(object):
+    cols = ('Taxon', 'No. Expected in Tree', 'F-measure', 'Precision', 'Recall',
+            'No. Genomes from Taxon', 'No. Genome In Lineage', 'Rogue out',
+            'Rogue in')
 
     def __init__(self, path):
         self.path = path
@@ -306,26 +314,33 @@ class FMeasureTable(object):
     def read(self):
         out = dict()
         with open(self.path) as fh:
-            cols = {x: i for i, x in enumerate(fh.readline().strip().split('\t'))}
+            read_cols = tuple([x for x in fh.readline().strip().split('\t')])
+            if self.cols != read_cols:
+                raise Exception('PhyloRank output file has different headers.')
+            col_ids = {x: i for i, x in enumerate(self.cols)}
+
             for line in fh.readlines():
-                vals = line.split('\t')
+                vals = [x.strip() for x in line.split('\t')]
 
-                # Only considering those which aren't monophyletic.
-                f_measure = float(vals[cols['F-measure']])
-                if f_measure >= 1.0:
-                    continue
-
-                taxon = vals[cols['Taxon']]
-                n_expected = int(vals[cols['No. Expected in Tree']])
-                rogue_in = vals[cols['Rogue in']].strip()
-                rogue_out = vals[cols['Rogue out']].strip()
+                taxon = vals[col_ids['Taxon']]
+                n_expected = int(vals[col_ids['No. Expected in Tree']])
+                f_measure = float(vals[col_ids['F-measure']])
+                precision = float(vals[col_ids['Precision']])
+                recall = float(float(vals[col_ids['Recall']]))
+                n_from_taxon = int(vals[col_ids['No. Genomes from Taxon']])
+                n_from_lineage = int(vals[col_ids['No. Genome In Lineage']])
+                rogue_in = vals[col_ids['Rogue in']]
+                rogue_out = vals[col_ids['Rogue out']]
 
                 hit = dict()
                 hit['n_expected'] = n_expected
-                hit['n_in'] = 0 if len(rogue_in) == 0 else len(rogue_in.split(','))
-                hit['g_in'] = list() if len(rogue_in) == 0 else rogue_in.split(',')
-                hit['n_out'] = 0 if len(rogue_out) == 0 else len(rogue_out.split(','))
-                hit['g_out'] = list() if len(rogue_out) == 0 else rogue_out.split(',')
+                hit['f_measure'] = f_measure
+                hit['precision'] = precision
+                hit['recall'] = recall
+                hit['n_from_taxon'] = n_from_taxon
+                hit['n_from_lineage'] = n_from_lineage
+                hit['rogue_in'] = list() if len(rogue_in) == 0 else rogue_in.split(',')
+                hit['rogue_out'] = list() if len(rogue_out) == 0 else rogue_out.split(',')
                 out[taxon] = hit
         return out
 
@@ -343,6 +358,11 @@ class NewickTree(object):
 
     def add_nodes(self, fm: FMeasureTable):
         for taxon, f_dict in fm.get_content().items():
+
+            # Only constructing nodes which are polyphyletic.
+            if f_dict['f_measure'] >= 1.0:
+                continue
+
             last_node = self.root
             for cur_rank in self.tf.get_ranks_above(taxon):
                 cur_node = self.tree.find_node_with_taxon_label(cur_rank)

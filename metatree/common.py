@@ -57,7 +57,6 @@ def is_executable(fpath):
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
 
-
 def which(program):
     """Return path to program.
 
@@ -90,6 +89,7 @@ def which(program):
 
     return None
 
+
 def check_on_path(program, exit_on_fail=True):
     """Check if program is on the system path.
 
@@ -115,3 +115,12 @@ def check_on_path(program, exit_on_fail=True):
 
     return False
 
+
+def rgba_hex(r, g, b, a=1):
+    r, g, b = [int(x*a) for x in (r, g, b)]
+    return '#%02x%02x%02x' % (r, g, b)
+
+
+def hex_rgb(v):
+    h = v.lstrip('#')
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
