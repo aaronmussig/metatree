@@ -24,9 +24,9 @@ from metatree import __description__, __version__
 from metatree.common import check_on_path
 from metatree.exception import MetaTreeException, MetaTreeExit
 from metatree.io import Batchfile
-from metatree.pipeline import run_pipeline
 from metatree.io.taxonomy_file import TaxonomyFile
 from metatree.logger import logger_setup
+from metatree.pipeline import run_pipeline
 
 
 def print_help():
@@ -37,7 +37,8 @@ def print_help():
 
 def main(args=None):
     parser = argparse.ArgumentParser(description=__description__)
-    parser.add_argument('batchfile', type=str, help='First tree must be the reference tree, format: id<tab>path_to_tree')
+    parser.add_argument('batchfile', type=str,
+                        help='First tree must be the reference tree, format: id<tab>path_to_tree')
     parser.add_argument('out_dir', type=str, help='path to the output directory')
     parser.add_argument('taxonomy_file', type=str, help='path to taxonomy file, format: gid<tab>taxonomy')
     parser.add_argument('outgroup', type=str, help='outgroup for rooting')

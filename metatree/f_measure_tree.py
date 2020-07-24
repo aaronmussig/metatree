@@ -5,8 +5,6 @@ import dendropy
 import ete3
 from ete3 import Tree, TreeStyle, TextFace, add_face_to_node
 
-from metatree.common import hex_rgb, rgba_hex
-
 
 class FMeasureTree(object):
     """Compares Phylorank output tables and plots differences in a tree."""
@@ -61,7 +59,7 @@ class FMeasureTree(object):
         return out
 
     @staticmethod
-    def get_text_face(text, bg, opacity, fsize=8):
+    def get_text_face(text, bg, opacity, fsize=8, bold=False):
         margin_size = 2
 
         tf = ete3.faces.TextFace(str(text), fsize=fsize, tight_text=True)
@@ -72,12 +70,12 @@ class FMeasureTree(object):
         tf.margin_left = margin_size
         tf.opacity = opacity
         tf.rotation = -0
+        tf.bold = bold
         tf.border.color = '#f2f2f2'
-        tf.border.width = None # try 1?
+        tf.border.width = None  # try 1?
         tf.hz_align = 1
         tf.vt_align = 1
         return tf
-
 
     def run(self, legend, out_path, rotation_deg=0):
 
@@ -98,7 +96,6 @@ class FMeasureTree(object):
         ts.show_scale = False
         ts.rotation = rotation_deg
 
-
         def my_layout(node):
             COLOURS = ['#ADEF29', '#F0E442', '#009E73', '#56B4E9', '#E69F00', '#911eb4', '#46f0f0', '#f032e6',
                        '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3',
@@ -116,23 +113,28 @@ class FMeasureTree(object):
 
                 # Attach a legend to the plot.
                 if legend:
-                    tf_legend_common_in = FMeasureTree.get_text_face('No. Common In', '#CC79A7', 1.0, fsize=7)
+                    tf_legend_common_in = FMeasureTree.get_text_face('No. Common In', '#F2F2F2', 0.5, fsize=7,
+                                                                     bold=True)
                     ete3.faces.add_face_to_node(tf_legend_common_in, node, column=1, position="branch-top")
 
-                    tf_legend_common_out = FMeasureTree.get_text_face('No. Common Out', '#CC79A7', 1.0, fsize=7)
+                    tf_legend_common_out = FMeasureTree.get_text_face('No. Common Out', '#F2F2F2', 0.5, fsize=7,
+                                                                      bold=True)
                     ete3.faces.add_face_to_node(tf_legend_common_out, node, column=1, position="branch-top")
 
                     tf_legend_common_blank = FMeasureTree.get_text_face('X', None, 0.0, fsize=7)
                     ete3.faces.add_face_to_node(tf_legend_common_blank, node, column=1, position="branch-top")
 
                     for idx, model_id in enumerate(sorted(self.files.keys())):
-                        tf_legend_in = FMeasureTree.get_text_face(f'No. Rogue In ({model_id})', COLOURS[idx], 1.0, fsize=7)
+                        tf_legend_in = FMeasureTree.get_text_face(f'No. Rogue In ({model_id})', COLOURS[idx], 1.0,
+                                                                  fsize=7)
                         ete3.faces.add_face_to_node(tf_legend_in, node, column=2 + idx, position="branch-top")
 
-                        tf_legend_out = FMeasureTree.get_text_face(f'No. Rogue Out ({model_id})', COLOURS[idx], 1.0, fsize=7)
+                        tf_legend_out = FMeasureTree.get_text_face(f'No. Rogue Out ({model_id})', COLOURS[idx], 1.0,
+                                                                   fsize=7)
                         ete3.faces.add_face_to_node(tf_legend_out, node, column=2 + idx, position="branch-top")
 
-                        tf_legend_exp = FMeasureTree.get_text_face(f'No. Expected ({model_id})', COLOURS[idx], 0.5, fsize=7)
+                        tf_legend_exp = FMeasureTree.get_text_face(f'No. Expected ({model_id})', "#F2F2F2", 0.2,
+                                                                   fsize=7)
                         ete3.faces.add_face_to_node(tf_legend_exp, node, column=2 + idx, position="branch-top")
 
             # Check if this node was not monophyletic in any of the models
@@ -150,16 +152,16 @@ class FMeasureTree(object):
 
                 # Add the number of common taxa in.
                 if n_common_in == 0:
-                    tf_common_in = FMeasureTree.get_text_face(n_common_in, '#f2f2f2', 0.2)
+                    tf_common_in = FMeasureTree.get_text_face(n_common_in, '#f2f2f2', 0.2, bold=True)
                 else:
-                    tf_common_in = FMeasureTree.get_text_face(n_common_in, '#CC79A7', 1)
+                    tf_common_in = FMeasureTree.get_text_face(n_common_in, '#f2f2f2', 0.5, bold=True)
                 ete3.faces.add_face_to_node(tf_common_in, node, column=2, position="branch-right")
 
                 # Add the number of common taxa out.
                 if n_common_out == 0:
-                    tf_common_out = FMeasureTree.get_text_face(n_common_out, '#f2f2f2', 0.2)
+                    tf_common_out = FMeasureTree.get_text_face(n_common_out, '#f2f2f2', 0.2, bold=True)
                 else:
-                    tf_common_out = FMeasureTree.get_text_face(n_common_out, '#CC79A7', 1)
+                    tf_common_out = FMeasureTree.get_text_face(n_common_out, '#f2f2f2', 0.5, bold=True)
                 ete3.faces.add_face_to_node(tf_common_out, node, column=2, position="branch-right")
 
                 tf_common_blank = FMeasureTree.get_text_face('X', None, 0.0)
@@ -189,10 +191,7 @@ class FMeasureTree(object):
                     ete3.faces.add_face_to_node(tf_generic_out, node, column=3 + idx, position="branch-right")
 
                     # Expected number of taxa in this model.
-                    if n_rogue_in == 0 and n_rogue_out == 0:
-                        tf_expected_cnt = FMeasureTree.get_text_face(cur_f_table[node.name]["n_expected"], '#f2f2f2', 0.2)
-                    else:
-                        tf_expected_cnt = FMeasureTree.get_text_face(cur_f_table[node.name]["n_expected"], COLOURS[idx], 0.5)
+                    tf_expected_cnt = FMeasureTree.get_text_face(cur_f_table[node.name]["n_expected"], '#f2f2f2', 0.2)
                     ete3.faces.add_face_to_node(tf_expected_cnt, node, column=3 + idx, position="branch-right")
 
         ts.layout_fn = my_layout

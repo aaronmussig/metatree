@@ -24,7 +24,7 @@ def run_pipeline(batchfile: Batchfile, out_dir: str, tax_file: TaxonomyFile, out
     rf_common = RfResults(os.path.join(dir_rf_common, 'rf_common_taxa.tsv'))
     rf_all = RfResults(os.path.join(dir_rf_all, 'rf_all_taxa.tsv'))
 
-    tbl_diff = os.path.join(out_dir, 'results', 'model_taxonomy_diff.tsv')
+    # tbl_diff = os.path.join(out_dir, 'results', 'model_taxonomy_diff.tsv')
 
     # Root the trees.
     tree_root = TreeRoot(dir_root)

@@ -3,6 +3,7 @@ import os
 import tempfile
 from collections import defaultdict
 from multiprocessing import Pool
+from warnings import simplefilter
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,14 +11,14 @@ import pandas as pd
 import seaborn as sns
 from Bio import Phylo
 from Bio.Phylo.TreeConstruction import DistanceMatrix, DistanceTreeConstructor
+from scipy.cluster.hierarchy import ClusterWarning
 from tqdm import tqdm
 
 from metatree.external.tree_compare import TreeCompare
 from metatree.io import Batchfile, RfResults
 
-from scipy.cluster.hierarchy import ClusterWarning
-from warnings import simplefilter
 simplefilter("ignore", ClusterWarning)
+
 
 class TreeDist(object):
 

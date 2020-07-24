@@ -17,7 +17,7 @@ Visualisation of polyphyletic groups between phylogenetic trees to a given refer
 metatree [batchfile] [out_dir] [taxonomy_file] [outgroup] [cpus]
 ```
 
-See the [doc/example](https://github.com/aaronmussig/metatree/example) directory for an example on how to use `metatree`.
+See the [example](https://github.com/aaronmussig/metatree/example) directory for an example on how to use `metatree`.
 
 
 ## Changelog

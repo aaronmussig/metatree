@@ -24,14 +24,12 @@ __maintainer__ = 'Donovan Parks'
 __email__ = 'donovan.parks@gmail.com'
 __status__ = 'Development'
 
-
-import sys
 import logging
+import sys
 
 import dendropy
-from dendropy.calculate import treecompare
-
 from biolib.newick import parse_label, create_label
+from dendropy.calculate import treecompare
 
 
 class TreeCompare(object):
@@ -166,7 +164,7 @@ class TreeCompare(object):
                 if n.bipartition not in compare_tree.bipartition_encoding:
                     incongruent += 1
                     if label:
-                        print (label, n.edge.length)
+                        print(label, n.edge.length)
                     else:
                         print(','.join([t.taxon.label for t in n.leaf_iter()]))
 
@@ -373,5 +371,3 @@ class TreeCompare(object):
                 if support is not None:
                     fout.write('%s\t%s\t%s\t%f\t%.2f\n' % (split_lca, 'Incongruent', 'T2 -> T1', length, support))
             fout.close()
-
-

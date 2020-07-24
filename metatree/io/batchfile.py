@@ -45,4 +45,3 @@ class Batchfile(object):
             else:
                 out = out.intersection(cur_set)
         return out
-
