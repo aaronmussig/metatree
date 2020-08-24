@@ -2,6 +2,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/metatree)](https://pypi.org/project/metatree/)
 ![Conda (channel only)](https://img.shields.io/conda/vn/bioconda/metatree?color=green)
+[![DOI](https://zenodo.org/badge/280021549.svg)](https://zenodo.org/badge/latestdoi/280021549)
 
 Visualisation of polyphyletic groups between phylogenetic trees to a given reference tree.
 
@@ -27,3 +28,6 @@ See the [example](https://github.com/aaronmussig/metatree/blob/master/example/in
 0.0.1
   - Initial release.
 ```
+
+## Citing
+Please [cite this repository](https://doi.org/10.5281/zenodo.3998727) if you use it in your work.
